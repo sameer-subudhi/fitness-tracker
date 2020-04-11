@@ -1,3 +1,4 @@
+import { UIService } from './../shared/ui.service';
 import { AngularFirestore, DocumentChangeAction } from '@angular/fire/firestore';
 import { Exercise } from './exercise.module';
 import { Subject, Subscription } from 'rxjs';
@@ -23,9 +24,12 @@ export class TrainingService {
 
     private fbSub: Subscription[] = [];
 
-    constructor(private db: AngularFirestore) { }
+    constructor(
+        private db: AngularFirestore,
+        private uiService: UIService) { }
 
     fetchAvailableExercises() {
+        this.uiService.loadingStateChanged.next(true);
         this.fbSub.push(
             this.db.collection('availableExercises')
                 .snapshotChanges()
@@ -41,8 +45,13 @@ export class TrainingService {
                         });
                     })
                 ).subscribe((exercises: Exercise[]) => {
+                    this.uiService.loadingStateChanged.next(false);
                     this.availableExercises = exercises;
                     this.exercisesChanged.next([...this.availableExercises]);
+                }, error => {
+                    this.uiService.loadingStateChanged.next(false);
+                    this.uiService.showSnackbar('Fetching exercises failed, please try again later', null, 3000);
+                    this.exercisesChanged.next(null);
                 }));
     }
 
